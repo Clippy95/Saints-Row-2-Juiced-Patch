@@ -677,7 +677,6 @@ namespace Render3D
 		},
 	};
 #endif
-	// This whole thing might have a performance hit.
 	shaderOptions ShaderOptions;
 	 
 	void ChangeShaderOptions() {
