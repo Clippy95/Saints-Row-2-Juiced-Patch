@@ -80,6 +80,24 @@ namespace GLua
                 lua_pushstring(L, "PC");
             return 1;
         }
+        else if (strcmp(cmd, "GET_ADAPTER_MODES_SIZE") == 0) {
+            lua_pushnumber(L, Render3D::getAvailableResolutions().size());
+            return 1;
+        }
+        else if (strcmp(cmd, "GET_ADAPTER_MODES_STRINGS") == 0) {
+            int index = (int)lua_tonumber(L, 2);
+            auto resolutions = Render3D::getAvailableResolutions();
+
+            if (index >= 0 && index < (int)resolutions.size()) {
+                char resolution_str[64];
+                sprintf(resolution_str, "%dx%d", resolutions[index].first, resolutions[index].second);
+                lua_pushstring(L, resolution_str);
+            }
+            else {
+                lua_pushstring(L, "");
+            }
+            return 1;
+        }
         if (strcmp(cmd, "JuicedCall") == 0) {
             int value = (int)lua_tonumber(L, 2);
             GLuaWrapper(cmd, &value, false);

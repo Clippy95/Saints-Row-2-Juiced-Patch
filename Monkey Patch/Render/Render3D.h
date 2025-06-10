@@ -42,5 +42,5 @@ namespace Render3D
     extern int OVERRIDE_SHADER_LOD;
     extern int SHADER_LOD;
     extern float SHADER_DISTANCE_SQUARED_MULT;
-
+    extern std::vector<std::pair<uint32_t, uint32_t>> getAvailableResolutions();
 }
