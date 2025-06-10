@@ -493,11 +493,14 @@ void __declspec(naked) TextureCrashFixRemasteredByGroveStreetGames()
 		size_t& sz = ctx.ecx;
 	
 		std::string convertedBuff(buff,sz);
+#define CLIPPY_REMOVE 1
 #if !JLITE
+#if !CLIPPY_REMOVE
 		int* resX = (int*)(0xE8DF14);
 		int* resY = (int*)(0xE8DF4C);
 
 		patchedRes = std::to_string(resX[13]) + "x" + std::to_string(resY[13]);
+#endif
 		std::string searchAA = "adv_antiali_slider_values \t\t\t= { [0] = { label = \"CONTROL_NO\" }, [1] = { label = \"2x\" },\t\t\t\t[2] = { label = \"4x\" },\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tnum_values = 3, cur_value = 0 }";
 		std::string newAA = "adv_antiali_slider_values = { [0] = { label = \"CONTROL_NO\" }, [1] = { label = \"2x\" }, [2] = { label = \"4x\" }, [3] = { label = \"8x\" }, num_values = 4, cur_value = 0 }";
 		// removed unnecessary tabs and spaces to make the extra label fit in without breaking the buffer
@@ -511,6 +514,7 @@ void __declspec(naked) TextureCrashFixRemasteredByGroveStreetGames()
 		std::string blankLib(sLibSuperUI.length(), ' ');
 
 		if (buff) {
+#if !CLIPPY_REMOVE
 			for (int i = 0; i < 14; ++i) { // parses the hardcoded array to check if your current resolution exists in it
 				if (userResX == resX[i] && userResY == resY[i]) {
 					resFound = true;
@@ -524,8 +528,9 @@ void __declspec(naked) TextureCrashFixRemasteredByGroveStreetGames()
 			}
 
 			replace_all(convertedBuff, searchAA, newAA);
-			replace_all(convertedBuff, "Fullscreen_Antialiasing", "MSAA                   "); // extra spaces for padding otherwise it'll break the buffer
 			replace_all(convertedBuff, "2048x1536", patchedRes); // easier to do it this way than to only patch if the user's res isn't found
+#endif
+			replace_all(convertedBuff, "Fullscreen_Antialiasing", "MSAA                   "); // extra spaces for padding otherwise it'll break the buffer
 			replace_all(convertedBuff, sLibSuperUI, blankLib); // fixes the error logger from SuperUI in system_lib.lua from crashing our executor, if nclok fixes it we'll get rid of this
 
 			if (*(BYTE*)(0xE8C470) == 0) { // only patch these if the game's running in English
@@ -682,18 +687,34 @@ void __declspec(naked) TextureCrashFixRemasteredByGroveStreetGames()
 					modified = true;
 				}
 				// Check if we need to apply slider patches
-				if (strcmp(filename, "pause_menu.lua") == 0 && !InGameConfig::g_sliders.empty()) {
+				if (strcmp(filename, "pause_menu.lua") == 0) {
 					if (!modified) {
 						// If we haven't created finalContent yet, do it now
 						finalContent = std::string(currentBuff, sz);
 					}
-
-					if (GameConfig::GetValue("Debug", "PopulateInGameOptions", 1)) {
+					if (!InGameConfig::g_sliders.empty() && GameConfig::GetValue("Debug", "PopulateInGameOptions", 1)) {
 						bool sliderModified = InGameConfig::PatchSliderContent(finalContent, filename);
 						if (sliderModified) {
 							modified = true;
 						}
 					}
+
+					std::string resolutionPatch = R"(
+function resolution_slider_values_juiced_mod()
+	local resolution_count = vint_get_avg_processing_time("GET_ADAPTER_MODES_SIZE")
+	
+	for index = 0, resolution_count - 1 do
+		local resolution_string = vint_get_avg_processing_time("GET_ADAPTER_MODES_STRINGS", index)
+		resolution_slider_values[index] = { label = resolution_string }
+	end
+	
+	resolution_slider_values.num_values = resolution_count
+end
+resolution_slider_values_juiced_mod()
+)";
+
+					finalContent += resolutionPatch;
+					modified = true;
 				}
 
 				// If any modifications were made, create a new buffer
